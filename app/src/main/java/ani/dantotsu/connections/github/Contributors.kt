@@ -18,12 +18,12 @@ class Contributors {
     )
 
     suspend fun getContributorSections(): DeveloperSections {
-        // ReDantotsu developers (only AsrOfficialDev)
+        // Zorotsu developers (only AsrOfficialDev)
         val redantotsuDevs = arrayOf(
             Developer(
                 "AsrOfficialDev",
                 "https://github.com/AsrOfficialDev.png", 
-                "ReDantotsu Developer",
+                "Zorotsu Developer",
                 "https://github.com/AsrOfficialDev"
             )
         )

@@ -1,14 +1,14 @@
-# ReDantotsu
+# Zorotsu
 
 <p align="center">
-  <a href="https://github.com/AsrOfficialDev/ReDantotsu/releases/latest">
-    <img src="https://img.shields.io/github/v/release/AsrOfficialDev/ReDantotsu?style=for-the-badge&logo=github&color=00bfff&label=Current%20Release" alt="Current Release">
+  <a href="https://github.com/AsrOfficialDev/Zorotsu/releases/latest">
+    <img src="https://img.shields.io/github/v/release/AsrOfficialDev/Zorotsu?style=for-the-badge&logo=github&color=00bfff&label=Current%20Release" alt="Current Release">
   </a>
-  <a href="https://github.com/AsrOfficialDev/ReDantotsu/releases">
-    <img src="https://img.shields.io/github/downloads/AsrOfficialDev/ReDantotsu/total?style=for-the-badge&logo=github&color=2ea44f&label=Total%20Downloads" alt="Total Downloads">
+  <a href="https://github.com/AsrOfficialDev/Zorotsu/releases">
+    <img src="https://img.shields.io/github/downloads/AsrOfficialDev/Zorotsu/total?style=for-the-badge&logo=github&color=2ea44f&label=Total%20Downloads" alt="Total Downloads">
   </a>
-  <a href="https://github.com/AsrOfficialDev/ReDantotsu/stargazers">
-    <img src="https://img.shields.io/github/stars/AsrOfficialDev/ReDantotsu?style=for-the-badge&logo=github&color=yellow&label=Stars" alt="Stars">
+  <a href="https://github.com/AsrOfficialDev/Zorotsu/stargazers">
+    <img src="https://img.shields.io/github/stars/AsrOfficialDev/Zorotsu?style=for-the-badge&logo=github&color=yellow&label=Stars" alt="Stars">
   </a>
   <a href="https://discord.gg/fYEJmDsDz9">
     <img src="https://img.shields.io/badge/Discord-Join%20Us-7289da?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
@@ -17,15 +17,15 @@
     <img src="https://img.shields.io/badge/License-UPL-blue?style=for-the-badge&logo=open-source-initiative&logoColor=white" alt="License: UPL">
   </a>
   <img src="https://img.shields.io/badge/Android-14%2B-green?style=for-the-badge&logo=android" alt="Android 14+">
-  <img src="https://komarev.com/ghpvc/?username=AsrOfficialDev-ReDantotsu&style=for-the-badge&label=Visits" alt="Visits">
+  <img src="https://komarev.com/ghpvc/?username=AsrOfficialDev-Zorotsu&style=for-the-badge&label=Visits" alt="Visits">
 </p>
 
 > **✨ The Ultimate Anime & Manga Experience for Android**
 
-ReDantotsu is a premium fan remake of the beloved Dantotsu application. I've taken the robust foundation of the original app and completely reimagined it, introducing a modern UI, expanding core functionality, and implementing crucial stability fixes to deliver the definitive anime and manga tracking experience.
+Zorotsu is a premium fan remake of the beloved Dantotsu application. I've taken the robust foundation of the original app and completely reimagined it, introducing a modern UI, expanding core functionality, and implementing crucial stability fixes to deliver the definitive anime and manga tracking experience.
 
 ## 📋 Table of Contents
-- [What's New in ReDantotsu](#-whats-new-in-redantotsu)
+- [What's New in Zorotsu](#-whats-new-in-redantotsu)
 - [Screenshots](#-screenshots)
 - [Installation](#-installation)
 - [Building from Source](#building-from-source)
@@ -35,9 +35,9 @@ ReDantotsu is a premium fan remake of the beloved Dantotsu application. I've tak
 - [Disclaimer](#disclaimer)
 - [Contributing](#-contributing)
 
-## ✨ What's New in ReDantotsu
+## ✨ What's New in Zorotsu
 
-We've extensively upgraded the app far beyond a simple visual reskin. Here is what makes ReDantotsu the best version yet:
+We've extensively upgraded the app far beyond a simple visual reskin. Here is what makes Zorotsu the best version yet:
 
 ### 🌟 Brand New Features
 - **Expanded Home Experience** - A redesigned home screen featuring dedicated Anime and Manga sections for better content discovery.
@@ -62,7 +62,7 @@ We've extensively upgraded the app far beyond a simple visual reskin. Here is wh
 
 ## 📥 Installation
 
-1. Download the latest APK from the [Releases](https://github.com/AsrOfficialDev/ReDantotsu/releases) page.
+1. Download the latest APK from the [Releases](https://github.com/AsrOfficialDev/Zorotsu/releases) page.
 2. Enable "Install from unknown sources" if prompted by your device.
 3. Install and enjoy!
 
@@ -70,8 +70,8 @@ We've extensively upgraded the app far beyond a simple visual reskin. Here is wh
 
 ```bash
 # Clone the repository
-git clone https://github.com/AsrOfficialDev/ReDantotsu.git
-cd ReDantotsu
+git clone https://github.com/AsrOfficialDev/Zorotsu.git
+cd Zorotsu
 
 # Build debug APK
 ./gradlew assembleGoogleAlpha
@@ -96,7 +96,7 @@ cd ReDantotsu
 - **[Dantotsu](https://git.rebelonion.dev/rebelonion/Dantotsu)** by [rebelonion](https://github.com/rebelonion)
 - Built from the ashes of Saikou
 
-### ReDantotsu
+### Zorotsu
 - **Fan Remake Developer:** Ashraful
 - **Liquid Glass Effect:** Based on iOS 26 design language
 - **Backdrop Library:** [backdrop](https://github.com/kyant0/backdrop) by kyant0
@@ -115,8 +115,8 @@ This project is licensed under the **Unabandon Public License (UPL)**, which ext
 
 ## ⚠️ Disclaimer <a name="disclaimer"></a>
 
-- ReDantotsu does not host any content. All streaming sources come from 3rd party extensions.
-- ReDantotsu is not affiliated with AniList, MyAnimeList, or any content providers.
+- Zorotsu does not host any content. All streaming sources come from 3rd party extensions.
+- Zorotsu is not affiliated with AniList, MyAnimeList, or any content providers.
 - All anime/manga information is sourced from public APIs.
 - The developers are not responsible for any misuse of the app.
 
@@ -133,5 +133,5 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ---
 
 <p align="center">
-  <b>ReDantotsu</b> • A Premium Anime & Manga Client ✨
+  <b>Zorotsu</b> • A Premium Anime & Manga Client ✨
 </p>
