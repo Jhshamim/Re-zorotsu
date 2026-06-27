@@ -65,7 +65,6 @@ class AndroidAnimeSourceManager(
                 }
         }
     }
-    }
 
     override fun get(sourceKey: Long): AnimeSource? {
         return sourcesMapFlow.value[sourceKey]
