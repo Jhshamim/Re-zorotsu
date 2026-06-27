@@ -9,6 +9,7 @@ import eu.kanade.domain.source.service.SourcePreferences
 import eu.kanade.tachiyomi.extension.InstallStep
 import eu.kanade.tachiyomi.extension.anime.model.AnimeExtension
 import eu.kanade.tachiyomi.extension.anime.model.AnimeLoadResult
+import eu.kanade.tachiyomi.source.anime.InbuiltAnimeSources
 import eu.kanade.tachiyomi.extension.anime.model.AvailableAnimeSources
 import eu.kanade.tachiyomi.extension.api.ExtensionGithubApi
 import eu.kanade.tachiyomi.extension.util.ExtensionInstallReceiver
@@ -103,9 +104,36 @@ class AnimeExtensionManager(
     private fun initAnimeExtensions() {
         val animeextensions = ExtensionLoader.loadAnimeExtensions(context)
 
-        _installedAnimeExtensionsFlow.value = animeextensions
+        val installedExtensions = animeextensions
             .filterIsInstance<AnimeLoadResult.Success>()
             .map { it.extension }
+            .toMutableList()
+
+        // Add Miruro as a built-in "installed" extension
+        val miruroSources = InbuiltAnimeSources.createSources(context)
+        if (miruroSources.isNotEmpty()) {
+            installedExtensions.add(
+                AnimeExtension.Installed(
+                    name = "Miruro.tv (Built-in)",
+                    pkgName = "ani.dantotsu.miruro.inbuilt",
+                    versionName = "1.0.0",
+                    versionCode = 1L,
+                    libVersion = 1.0,
+                    lang = "en",
+                    isNsfw = false,
+                    hasReadme = false,
+                    hasChangelog = false,
+                    pkgFactory = null,
+                    sources = miruroSources,
+                    icon = null,
+                    hasUpdate = false,
+                    isObsolete = false,
+                    isUnofficial = false,
+                )
+            )
+        }
+
+        _installedAnimeExtensionsFlow.value = installedExtensions
 
         _untrustedAnimeExtensionsFlow.value = animeextensions
             .filterIsInstance<AnimeLoadResult.Untrusted>()
