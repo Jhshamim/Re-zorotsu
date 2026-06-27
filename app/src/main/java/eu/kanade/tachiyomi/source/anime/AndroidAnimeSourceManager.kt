@@ -35,6 +35,12 @@ class AndroidAnimeSourceManager(
         sourcesMapFlow.map { it.values.filterIsInstance<AnimeCatalogueSource>() }
 
     init {
+        // Add inbuilt sources immediately so they're always available
+        val inbuiltSources = InbuiltAnimeSources.createSources(context)
+        inbuiltSources.forEach { source ->
+            sourcesMapFlow.value[source.id] = source
+            registerStubSource(source.toSourceData())
+        }
         scope.launch {
             extensionManager.installedExtensionsFlow
                 .collectLatest { extensions ->
@@ -45,22 +51,20 @@ class AndroidAnimeSourceManager(
                             ),
                         ),
                     )
+                    // Re-add inbuilt sources (they should already be in the map)
+                    inbuiltSources.forEach { source ->
+                        mutableMap[source.id] = source
+                    }
                     extensions.forEach { extension ->
                         extension.sources.forEach {
                             mutableMap[it.id] = it
                             registerStubSource(it.toSourceData())
                         }
                     }
-                    // Add inbuilt sources
-                    val inbuiltSources = InbuiltAnimeSources.createSources(context)
-                    inbuiltSources.forEach { source ->
-                        mutableMap[source.id] = source
-                        registerStubSource(source.toSourceData())
-                    }
                     sourcesMapFlow.value = mutableMap
                 }
         }
-
+    }
     }
 
     override fun get(sourceKey: Long): AnimeSource? {
