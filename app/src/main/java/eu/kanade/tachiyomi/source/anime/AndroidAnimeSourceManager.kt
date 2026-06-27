@@ -51,6 +51,12 @@ class AndroidAnimeSourceManager(
                             registerStubSource(it.toSourceData())
                         }
                     }
+                    // Add inbuilt sources
+                    val inbuiltSources = InbuiltAnimeSources.createSources(context)
+                    inbuiltSources.forEach { source ->
+                        mutableMap[source.id] = source
+                        registerStubSource(source.toSourceData())
+                    }
                     sourcesMapFlow.value = mutableMap
                 }
         }

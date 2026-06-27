@@ -3,7 +3,9 @@ package ani.dantotsu.aniyomi.anime.sources
 import android.content.SharedPreferences
 import android.util.Base64
 import android.util.Log
+import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
+import androidx.preference.SwitchPreference
 import eu.kanade.tachiyomi.animesource.ConfigurableAnimeSource
 import eu.kanade.tachiyomi.animesource.model.AnimeFilterList
 import eu.kanade.tachiyomi.animesource.model.AnimesPage
@@ -12,13 +14,11 @@ import eu.kanade.tachiyomi.animesource.model.SEpisode
 import eu.kanade.tachiyomi.animesource.model.Video
 import eu.kanade.tachiyomi.animesource.online.AnimeHttpSource
 import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.network.POST
 import eu.kanade.tachiyomi.network.awaitSuccess
 import eu.kanade.tachiyomi.network.interceptor.rateLimitHost
 import eu.kanade.tachiyomi.network.parseAs
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.FormBody
@@ -29,6 +29,8 @@ import okhttp3.Request
 import okhttp3.Response
 import org.json.JSONArray
 import org.json.JSONObject
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
 import java.util.concurrent.TimeUnit
 import java.util.zip.GZIPInputStream
 
@@ -82,26 +84,26 @@ class Miruro(
 
         private const val PREF_PROVIDER_KEY = "preferred_provider"
         private const val PREF_PROVIDER_TITLE = "Preferred Provider"
-        private val PREF_PROVIDER_ENTRIES = listOf("Kiwi", "Bee")
-        private val PREF_PROVIDER_VALUES = listOf("kiwi", "bee")
+        private val PREF_PROVIDER_ENTRIES = arrayOf("Kiwi", "Bee")
+        private val PREF_PROVIDER_VALUES = arrayOf("kiwi", "bee")
         private const val PREF_PROVIDER_DEFAULT = "kiwi"
 
         private const val PREF_SUB_TYPE_KEY = "preferred_sub_type"
         private const val PREF_SUB_TYPE_TITLE = "Preferred Sub/Dub"
-        private val PREF_SUB_TYPE_ENTRIES = listOf("Sub", "Dub", "Soft Sub")
-        private val PREF_SUB_TYPE_VALUES = listOf("sub", "dub", "ssub")
+        private val PREF_SUB_TYPE_ENTRIES = arrayOf("Sub", "Dub", "Soft Sub")
+        private val PREF_SUB_TYPE_VALUES = arrayOf("sub", "dub", "ssub")
         private const val PREF_SUB_TYPE_DEFAULT = "sub"
 
         private const val PREF_QUALITY_KEY = "preferred_quality"
         private const val PREF_QUALITY_TITLE = "Preferred Quality"
-        private val PREF_QUALITY_ENTRIES = listOf("1080p", "720p", "480p", "360p")
-        private val PREF_QUALITY_VALUES = listOf("1080", "720", "480", "360")
+        private val PREF_QUALITY_ENTRIES = arrayOf("1080p", "720p", "480p", "360p")
+        private val PREF_QUALITY_VALUES = arrayOf("1080", "720", "480", "360")
         private const val PREF_QUALITY_DEFAULT = "1080"
 
         private const val PREF_TITLE_STYLE_KEY = "preferred_title_style"
         private const val PREF_TITLE_STYLE_TITLE = "Title Display Style"
-        private val PREF_TITLE_STYLE_ENTRIES = listOf("User Preferred", "Romaji", "English", "Native")
-        private val PREF_TITLE_STYLE_VALUES = listOf("userPreferred", "romaji", "english", "native")
+        private val PREF_TITLE_STYLE_ENTRIES = arrayOf("User Preferred", "Romaji", "English", "Native")
+        private val PREF_TITLE_STYLE_VALUES = arrayOf("userPreferred", "romaji", "english", "native")
         private const val PREF_TITLE_STYLE_DEFAULT = "userPreferred"
 
         private const val PREF_MARK_FILLERS_KEY = "mark_filler_episodes"
@@ -129,9 +131,12 @@ class Miruro(
 
         private const val PREF_MIRROR_KEY = "preferred_mirror"
         private const val PREF_MIRROR_TITLE = "Preferred mirror"
-        private val MIRROR_ENTRIES = listOf("miruro.tv", "miruro.to", "miruro.bz", "miruro.ru")
-        private val MIRROR_VALUES = MIRROR_ENTRIES.map { "https://www.$it" }
-        private val PREF_MIRROR_DEFAULT = MIRROR_VALUES.first()
+        private val MIRROR_ENTRIES = arrayOf("miruro.tv", "miruro.to", "miruro.bz", "miruro.ru")
+        private val MIRROR_VALUES = MIRROR_ENTRIES.map { "https://www.$it" }.toTypedArray()
+        private val PREF_MIRROR_DEFAULT = MIRROR_VALUES[0]
+
+        private fun String.decodeHex(): ByteArray =
+            chunked(2).map { it.toInt(16).toByte() }.toByteArray()
     }
 
     private val jikanClient: OkHttpClient = network.client.newBuilder()
@@ -377,85 +382,10 @@ class Miruro(
         }
     }
 
-    private fun parseEpisodesFromProvider(
-        providerData: JSONObject,
-        provider: String,
-        preferredSubType: String,
-        fillerEpisodes: Set<Float> = emptySet(),
-    ): List<SEpisode> {
-        val episodesObj = providerData.optJSONObject("episodes") ?: return emptyList()
+    // ============================ Episode Video (required by base class) ============================
 
-        val subTypes = when (provider) {
-            "kiwi" -> listOf("sub", "dub")
-            "bee" -> listOf("ssub", "sub", "dub")
-            else -> listOf("sub", "dub")
-        }
-
-        val episodeMap = mutableMapOf<Float, MutableMap<String, String>>()
-        val episodeMeta = mutableMapOf<Float, Pair<Double, String>>()
-
-        for (subType in subTypes) {
-            val typeEpisodes = episodesObj.optJSONArray(subType) ?: continue
-            for (i in 0 until typeEpisodes.length()) {
-                val epJson = typeEpisodes.getJSONObject(i)
-                val number = epJson.optDouble("number", 0.0).toFloat()
-                val id = epJson.optString("id", "")
-                val title = epJson.optString("title", "")
-
-                episodeMap.getOrPut(number) { mutableMapOf() }[subType] = id
-                if (number !in episodeMeta) {
-                    episodeMeta[number] = epJson.optDouble("number", 0.0) to title
-                }
-            }
-        }
-
-        if (episodeMap.isEmpty()) return emptyList()
-
-        return episodeMap.keys.mapNotNull { number ->
-            val subTypeIds = episodeMap[number] ?: return@mapNotNull null
-            val (rawNumber, title) = episodeMeta[number] ?: return@mapNotNull null
-            buildMergedEpisode(rawNumber, title, provider, preferredSubType, subTypeIds, subTypes, fillerEpisodes)
-        }
-    }
-
-    private fun buildMergedEpisode(
-        number: Double,
-        title: String,
-        provider: String,
-        preferredSubType: String,
-        subTypeIds: Map<String, String>,
-        allSubTypes: List<String>,
-        fillerEpisodes: Set<Float>,
-    ): SEpisode {
-        val defaultSubType = subTypeIds.keys.firstOrNull { it == preferredSubType }
-            ?: allSubTypes.firstOrNull { it in subTypeIds }
-            ?: subTypeIds.keys.first()
-        val episodeId = subTypeIds[defaultSubType] ?: ""
-
-        val episodeIdObj = JSONObject().apply {
-            put("episodeId", episodeId)
-            put("provider", provider)
-            put("defaultSubType", defaultSubType)
-            put("subTypes", JSONObject(subTypeIds))
-        }
-
-        val audioLabels = subTypeIds.keys.map { subType ->
-            when (subType) {
-                "sub" -> "Sub"
-                "dub" -> "Dub"
-                "ssub" -> "Soft Sub"
-                else -> subType.replaceFirstChar { it.uppercase() }
-            }
-        }.sortedWith(compareBy { mapOf("Sub" to 0, "Dub" to 1)[it] ?: 2 })
-        val scanlatorLabel = audioLabels.joinToString(" & ")
-
-        val isFiller = fillerEpisodes.contains(number.toFloat())
-        return SEpisode.create().apply {
-            episode_number = number.toFloat()
-            name = if (title.isNotEmpty()) "Episode ${number.toInt()}: $title" else "Episode ${number.toInt()}"
-            setUrlWithoutDomain(episodeIdObj.toString())
-            scanlator = scanlatorLabel + if (isFiller) " • Filler" else ""
-        }
+    override fun episodeVideoParse(response: Response): SEpisode {
+        throw UnsupportedOperationException("Deprecated - use episodeListParse")
     }
 
     // ============================ Video Links ============================
@@ -519,12 +449,16 @@ class Miruro(
                     }
                 } catch (e: Exception) {
                     Log.e("Miruro", "Failed to fetch additional streams: ${e.message}")
-                    emptyList()
+                    emptyList<Video>()
                 }
             }.flatten(),
         )
 
         return videos
+    }
+
+    override fun videoUrlParse(response: Response): String {
+        throw UnsupportedOperationException("Deprecated - use videoListParse")
     }
 
     private fun parseStreamsFromResponse(response: Response, subType: String?): List<Video> {
@@ -606,7 +540,7 @@ class Miruro(
 
         // Mirror preference
         screen.addPreference(
-            androidx.preference.ListPreference(context).apply {
+            ListPreference(context).apply {
                 key = PREF_MIRROR_KEY
                 title = PREF_MIRROR_TITLE
                 entries = MIRROR_ENTRIES
@@ -622,7 +556,7 @@ class Miruro(
 
         // Provider preference
         screen.addPreference(
-            androidx.preference.ListPreference(context).apply {
+            ListPreference(context).apply {
                 key = PREF_PROVIDER_KEY
                 title = PREF_PROVIDER_TITLE
                 entries = PREF_PROVIDER_ENTRIES
@@ -634,7 +568,7 @@ class Miruro(
 
         // Sub type preference
         screen.addPreference(
-            androidx.preference.ListPreference(context).apply {
+            ListPreference(context).apply {
                 key = PREF_SUB_TYPE_KEY
                 title = PREF_SUB_TYPE_TITLE
                 entries = PREF_SUB_TYPE_ENTRIES
@@ -646,7 +580,7 @@ class Miruro(
 
         // Quality preference
         screen.addPreference(
-            androidx.preference.ListPreference(context).apply {
+            ListPreference(context).apply {
                 key = PREF_QUALITY_KEY
                 title = PREF_QUALITY_TITLE
                 entries = PREF_QUALITY_ENTRIES
@@ -658,7 +592,7 @@ class Miruro(
 
         // Title style preference
         screen.addPreference(
-            androidx.preference.ListPreference(context).apply {
+            ListPreference(context).apply {
                 key = PREF_TITLE_STYLE_KEY
                 title = PREF_TITLE_STYLE_TITLE
                 entries = PREF_TITLE_STYLE_ENTRIES
@@ -669,7 +603,7 @@ class Miruro(
         )
 
         // Mark fillers preference
-        val markFillersPref = androidx.preference.SwitchPreference(context).apply {
+        val markFillersPref = SwitchPreference(context).apply {
             key = PREF_MARK_FILLERS_KEY
             title = PREF_MARK_FILLERS_TITLE
             setDefaultValue(PREF_MARK_FILLERS_DEFAULT)
@@ -680,7 +614,7 @@ class Miruro(
 
         // Hide fillers preference
         screen.addPreference(
-            androidx.preference.SwitchPreference(context).apply {
+            SwitchPreference(context).apply {
                 key = PREF_HIDE_FILLERS_KEY
                 title = PREF_HIDE_FILLERS_TITLE
                 setDefaultValue(PREF_HIDE_FILLERS_DEFAULT)
@@ -694,7 +628,7 @@ class Miruro(
 
         // Include all sub types preference
         screen.addPreference(
-            androidx.preference.SwitchPreference(context).apply {
+            SwitchPreference(context).apply {
                 key = PREF_INCLUDE_ALL_SUB_TYPES_KEY
                 title = PREF_INCLUDE_ALL_SUB_TYPES_TITLE
                 setDefaultValue(PREF_INCLUDE_ALL_SUB_TYPES_DEFAULT)
@@ -704,7 +638,7 @@ class Miruro(
 
         // Strip HTML preference
         screen.addPreference(
-            androidx.preference.SwitchPreference(context).apply {
+            SwitchPreference(context).apply {
                 key = PREF_STRIP_HTML_KEY
                 title = PREF_STRIP_HTML_TITLE
                 setDefaultValue(PREF_STRIP_HTML_DEFAULT)
@@ -714,7 +648,7 @@ class Miruro(
 
         // Merge providers preference
         screen.addPreference(
-            androidx.preference.SwitchPreference(context).apply {
+            SwitchPreference(context).apply {
                 key = PREF_MERGE_PROVIDERS_KEY
                 title = PREF_MERGE_PROVIDERS_TITLE
                 setDefaultValue(PREF_MERGE_PROVIDERS_DEFAULT)
@@ -773,10 +707,10 @@ class Miruro(
         return max
     }
 
-    private fun anilistMalIdRequest(anilistId: Int): Request {
-        val query = $$"""
-        query media($id: Int, $type: MediaType) {
-            Media(id: $id, type: $type) {
+    private suspend fun anilistMalIdRequest(anilistId: Int): Request {
+        val query = """
+        query media(${'$'}id: Int, ${'$'}type: MediaType) {
+            Media(id: ${'$'}id, type: ${'$'}type) {
                 idMal
             }
         }
@@ -785,14 +719,18 @@ class Miruro(
             put("id", anilistId)
             put("type", "ANIME")
         }
+        val json = Injekt.get< kotlinx.serialization.json.Json>()
         val body = FormBody.Builder()
             .add("query", query)
-            .add("variables", kotlinx.serialization.json.Json.encodeToString(variables))
+            .add("variables", json.encodeToString(variables))
             .build()
-        return POST(ANILIST_GRAPHQL_URL, body = body)
+        return Request.Builder()
+            .url(ANILIST_GRAPHQL_URL)
+            .post(body)
+            .build()
     }
 
-    private fun fetchMalId(anilistId: Int): Int? = try {
+    private suspend fun fetchMalId(anilistId: Int): Int? = try {
         client.newCall(anilistMalIdRequest(anilistId)).execute()
             .parseAs<AnilistMalIdResponse>().data.media.idMal
     } catch (e: Exception) {
@@ -800,7 +738,7 @@ class Miruro(
         null
     }
 
-    private fun fetchFillerEpisodes(malId: Int, maxEpisode: Float = Float.MAX_VALUE): Set<Float> {
+    private suspend fun fetchFillerEpisodes(malId: Int, maxEpisode: Float = Float.MAX_VALUE): Set<Float> {
         val fillerEpisodes = mutableSetOf<Float>()
         var page = 1
         var hasNextPage = true
@@ -985,8 +923,86 @@ class Miruro(
         }
     }
 
-    private fun String.decodeHex(): ByteArray =
-        chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+    private fun parseEpisodesFromProvider(
+        providerData: JSONObject,
+        provider: String,
+        preferredSubType: String,
+        fillerEpisodes: Set<Float> = emptySet(),
+    ): List<SEpisode> {
+        val episodesObj = providerData.optJSONObject("episodes") ?: return emptyList()
+
+        val subTypes = when (provider) {
+            "kiwi" -> listOf("sub", "dub")
+            "bee" -> listOf("ssub", "sub", "dub")
+            else -> listOf("sub", "dub")
+        }
+
+        val episodeMap = mutableMapOf<Float, MutableMap<String, String>>()
+        val episodeMeta = mutableMapOf<Float, Pair<Double, String>>()
+
+        for (subType in subTypes) {
+            val typeEpisodes = episodesObj.optJSONArray(subType) ?: continue
+            for (i in 0 until typeEpisodes.length()) {
+                val epJson = typeEpisodes.getJSONObject(i)
+                val number = epJson.optDouble("number", 0.0).toFloat()
+                val id = epJson.optString("id", "")
+                val title = epJson.optString("title", "")
+
+                episodeMap.getOrPut(number) { mutableMapOf() }[subType] = id
+                if (number !in episodeMeta) {
+                    episodeMeta[number] = epJson.optDouble("number", 0.0) to title
+                }
+            }
+        }
+
+        if (episodeMap.isEmpty()) return emptyList()
+
+        return episodeMap.keys.mapNotNull { number ->
+            val subTypeIds = episodeMap[number] ?: return@mapNotNull null
+            val (rawNumber, title) = episodeMeta[number] ?: return@mapNotNull null
+            buildMergedEpisode(rawNumber, title, provider, preferredSubType, subTypeIds, subTypes, fillerEpisodes)
+        }
+    }
+
+    private fun buildMergedEpisode(
+        number: Double,
+        title: String,
+        provider: String,
+        preferredSubType: String,
+        subTypeIds: Map<String, String>,
+        allSubTypes: List<String>,
+        fillerEpisodes: Set<Float>,
+    ): SEpisode {
+        val defaultSubType = subTypeIds.keys.firstOrNull { it == preferredSubType }
+            ?: allSubTypes.firstOrNull { it in subTypeIds }
+            ?: subTypeIds.keys.first()
+        val episodeId = subTypeIds[defaultSubType] ?: ""
+
+        val episodeIdObj = JSONObject().apply {
+            put("episodeId", episodeId)
+            put("provider", provider)
+            put("defaultSubType", defaultSubType)
+            put("subTypes", JSONObject(subTypeIds))
+        }
+
+        val audioLabels = subTypeIds.keys.map { subType ->
+            when (subType) {
+                "sub" -> "Sub"
+                "dub" -> "Dub"
+                "ssub" -> "Soft Sub"
+                else -> subType.replaceFirstChar { it.uppercase() }
+            }
+        }.sortedWith(compareBy { mapOf("Sub" to 0, "Dub" to 1)[it] ?: 2 })
+        val scanlatorLabel = audioLabels.joinToString(" & ")
+
+        val isFiller = fillerEpisodes.contains(number.toFloat())
+        return SEpisode.create().apply {
+            episode_number = number.toFloat()
+            name = if (title.isNotEmpty()) "Episode ${number.toInt()}: $title" else "Episode ${number.toInt()}"
+            setUrlWithoutDomain(episodeIdObj.toString())
+            scanlator = scanlatorLabel + if (isFiller) " • Filler" else ""
+        }
+    }
 }
 
 @Serializable
