@@ -614,7 +614,7 @@ class Miruro(
                 setDefaultValue(PREF_MIRROR_DEFAULT)
                 summary = "%s"
                 setOnPreferenceChangeListener { _, newValue ->
-                    baseUrl = newValue as@addPreference String
+                    baseUrl = newValue as String
                     true
                 }
             }
